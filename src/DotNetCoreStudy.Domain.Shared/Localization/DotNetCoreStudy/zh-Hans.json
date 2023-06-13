@@ -1,8 +1,27 @@
 {
     "culture": "zh-Hans",
-    "texts": {
-      "Menu:Home": "首页",
-      "Welcome": "欢迎",
-      "LongWelcomeMessage": "欢迎来到该应用程序. 这是一个基于ABP框架的启动项目. 有关更多信息, 请访问 abp.io."
-    }
+  "texts": {
+    "Menu:Home": "首页",
+    "Welcome": "欢迎",
+    "LongWelcomeMessage": "欢迎来到该应用程序. 这是一个基于ABP框架的启动项目. 有关更多信息, 请访问 abp.io.",
+    "Enum:BookType.Undefined": "未定义",
+    "Enum:BookType.Adventure": "奇遇",
+    "Enum:BookType.Biography": "传记",
+    "Enum:BookType.Dystopia": "反乌托邦",
+    "Enum:BookType.Fantastic": "匪夷所思",
+    "Enum:BookType.Horror": "恐怖",
+    "Enum:BookType.Science": "科学",
+    "Enum:BookType.ScienceFiction": "科幻",
+    "Enum:BookType.Poetry": "诗歌",
+    "Permission:BookStore": "书店",
+    "Permission:Books": "图书管理",
+    "Permission:Books.Create": "创建新图书",
+    "Permission:Books.Edit": "编辑书籍",
+    "Permission:Books.Delete": "删除书籍",
+    "BookStore:00001": "已经存在一个相同名称的作者: {name}",
+    "Permission:Authors": "作者管理",
+    "Permission:Authors.Create": "创建新作者",
+    "Permission:Authors.Edit": "编辑作者",
+    "Permission:Authors.Delete": "删除作者"
+  }
   }
