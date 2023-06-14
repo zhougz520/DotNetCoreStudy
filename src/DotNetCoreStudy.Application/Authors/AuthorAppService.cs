@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Volo.Abp.Application.Dtos;
+using Volo.Abp.Caching;
 using Volo.Abp.Domain.Repositories;
 
 namespace DotNetCoreStudy.Authors
@@ -12,13 +13,16 @@ namespace DotNetCoreStudy.Authors
     {
         private readonly IAuthorRepository _authorRepository;
         private readonly AuthorManager _authorManager;
+        private readonly IDistributedCache<AuthorDto> _cache;
 
         public AuthorAppService(
             IAuthorRepository authorRepository,
-            AuthorManager authorManager)
+            AuthorManager authorManager,
+            IDistributedCache<AuthorDto> cache)
         {
             _authorRepository = authorRepository;
             _authorManager = authorManager;
+            _cache = cache;
         }
 
         [Authorize(DotNetCoreStudyPermissions.Authors.Create)]
@@ -43,8 +47,15 @@ namespace DotNetCoreStudy.Authors
 
         public async Task<AuthorDto> GetAsync(Guid id)
         {
-            var author = await _authorRepository.GetAsync(id);
-            return ObjectMapper.Map<Author, AuthorDto>(author);
+            return await _cache.GetOrAddAsync(
+                    $"Author_{id}",
+                    async () =>
+                    {
+                        Console.WriteLine("----------读取数据库----------");
+                        var author = await _authorRepository.GetAsync(id);
+                        return ObjectMapper.Map<Author, AuthorDto>(author);
+                    }
+                );
         }
 
         public async Task<PagedResultDto<AuthorDto>> GetListAsync(GetAuthorListDto input)
