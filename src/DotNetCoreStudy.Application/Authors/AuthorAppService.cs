@@ -1,5 +1,6 @@
 ﻿using DotNetCoreStudy.Permissions;
 using Microsoft.AspNetCore.Authorization;
+using StackExchange.Redis;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -14,21 +15,91 @@ namespace DotNetCoreStudy.Authors
     {
         private readonly IAuthorRepository _authorRepository;
         private readonly AuthorManager _authorManager;
-        private readonly IDistributedCache<AuthorDto> _cache;
+        private readonly IDistributedCache<AuthorDto> _cacheAuthorDto;
         private readonly IAbpDistributedLock _distributedLock;
+        private readonly IConnectionMultiplexer _redisConnection;
 
         public AuthorAppService(
             IAuthorRepository authorRepository,
             AuthorManager authorManager,
-            IDistributedCache<AuthorDto> cache,
-            IAbpDistributedLock distributedLock)
+            IDistributedCache<AuthorDto> cacheAuthorDto,
+            IAbpDistributedLock distributedLock,
+            IConnectionMultiplexer redisConnection)
         {
             _authorRepository = authorRepository;
             _authorManager = authorManager;
-            _cache = cache;
+            _cacheAuthorDto = cacheAuthorDto;
             _distributedLock = distributedLock;
+            _redisConnection = redisConnection;
         }
 
+        /// <summary>
+        /// Redis调用Lua脚本Demo(解决秒杀超卖问题)
+        /// </summary>
+        /// <returns></returns>
+        public async Task RedisLuaTest()
+        {
+            // 获取 Redis 数据库连接
+            var database = _redisConnection.GetDatabase();
+
+            // 定义一个List用来存放并发任务
+            List<Task> tasks = new List<Task>();
+
+            for (int i = 0; i < 1000; i++)
+            {
+                tasks.Add(
+                    Task.Run(async () =>
+                    {
+                        string roomNum = new Random().Next(10).ToString().PadLeft(4, '0');
+                        int userId = new Random().Next(1000);
+                        // 定义 Lua 脚本
+                        var luaScript = @"
+                            if tonumber(redis.call('get', KEYS[1])) > 0 then
+                                redis.call('decr', KEYS[1])
+                                redis.call('lpush', KEYS[2], ARGV[1])
+                                return 1
+                            else
+                                return 0
+                            end
+                        ";
+
+                        // 执行 Lua 脚本
+                        var result = await database.ScriptEvaluateAsync(
+                            luaScript,
+                            new RedisKey[] { $"room:{roomNum}", $"users:{roomNum}" },
+                            new RedisValue[] { $"用户{userId}" });
+                        if ((int)result == 1)
+                        {
+                            Console.WriteLine($"用户{userId} 成功抢到 房间{roomNum}");
+                        }
+                        else
+                        {
+                            Console.WriteLine($"用户{userId} 抢房失败");
+                        }
+                    })
+                    );
+            }
+            await Task.WhenAll(tasks);
+
+            Console.WriteLine("所有任务已执行完毕！！");
+        }
+
+        public async Task RedisInitSecKillData()
+        {
+            // 获取 Redis 数据库连接
+            var database = _redisConnection.GetDatabase();
+
+            for (int i = 0; i < 10; i++)
+            {
+                string roomNum = i.ToString().PadLeft(4, '0');
+                await database.StringSetAsync($"room:{roomNum}", i.ToString());
+            }
+        }
+
+        /// <summary>
+        /// Redis分布式锁实现Demo
+        /// </summary>
+        /// <returns></returns>
         public async Task RedisDistributedLockTest()
         {
             // 定义一个List用来存放并发任务
@@ -87,7 +158,7 @@ namespace DotNetCoreStudy.Authors
 
         public async Task<AuthorDto> GetAsync(Guid id)
         {
-            return await _cache.GetOrAddAsync(
+            return await _cacheAuthorDto.GetOrAddAsync(
                     $"Author_{id}",
                     async () =>
                     {

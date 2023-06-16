@@ -54,10 +54,15 @@ public class DotNetCoreStudyApplicationModule : AbpModule
         var configuration = context.Services.GetConfiguration();
         context.Services.AddSingleton<IDistributedLockProvider>(sp =>
         {
-            var connection = ConnectionMultiplexer
-                .Connect(configuration["Redis:Configuration"]);
-            return new
-                RedisDistributedSynchronizationProvider(connection.GetDatabase());
+            var connection = ConnectionMultiplexer.Connect(configuration["Redis:Configuration"]);
+            return new RedisDistributedSynchronizationProvider(connection.GetDatabase());
+        });
+
+        // 注册 StackExchange.Redis 的连接多路复用器
+        context.Services.AddSingleton<IConnectionMultiplexer>(provider =>
+        {
+            // 创建连接多路复用器
+            return ConnectionMultiplexer.Connect(configuration["Redis:Configuration"]);
         });
     }
 }
