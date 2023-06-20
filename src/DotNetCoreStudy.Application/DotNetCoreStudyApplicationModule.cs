@@ -8,6 +8,7 @@ using Volo.Abp.AutoMapper;
 using Volo.Abp.Caching;
 using Volo.Abp.Caching.StackExchangeRedis;
 using Volo.Abp.DistributedLocking;
+using Volo.Abp.EventBus.RabbitMq;
 using Volo.Abp.FeatureManagement;
 using Volo.Abp.Identity;
 using Volo.Abp.Modularity;
@@ -28,6 +29,7 @@ namespace DotNetCoreStudy;
     )]
 [DependsOn(typeof(AbpCachingStackExchangeRedisModule))]
 [DependsOn(typeof(AbpDistributedLockingModule))]
+[DependsOn(typeof(AbpEventBusRabbitMqModule))]
 public class DotNetCoreStudyApplicationModule : AbpModule
 {
     public override void ConfigureServices(ServiceConfigurationContext context)

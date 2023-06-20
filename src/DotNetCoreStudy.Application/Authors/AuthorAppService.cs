@@ -18,19 +18,27 @@ namespace DotNetCoreStudy.Authors
         private readonly IDistributedCache<AuthorDto> _cacheAuthorDto;
         private readonly IAbpDistributedLock _distributedLock;
         private readonly IConnectionMultiplexer _redisConnection;
+        private readonly AuthorPublish _authorPublish;
 
         public AuthorAppService(
             IAuthorRepository authorRepository,
             AuthorManager authorManager,
             IDistributedCache<AuthorDto> cacheAuthorDto,
             IAbpDistributedLock distributedLock,
-            IConnectionMultiplexer redisConnection)
+            IConnectionMultiplexer redisConnection,
+            AuthorPublish authorPublish)
         {
             _authorRepository = authorRepository;
             _authorManager = authorManager;
             _cacheAuthorDto = cacheAuthorDto;
             _distributedLock = distributedLock;
             _redisConnection = redisConnection;
+            _authorPublish = authorPublish;
+        }
+
+        public async Task RabbitMqPublishTest(int count)
+        {
+            await _authorPublish.ChangeStockCountAsync(GuidGenerator.Create(), count);
         }
 
         /// <summary>
@@ -84,6 +92,10 @@ namespace DotNetCoreStudy.Authors
             Console.WriteLine("所有任务已执行完毕！！");
         }
 
+        /// <summary>
+        /// 为10个房间初始化库存Redis数据
+        /// </summary>
+        /// <returns></returns>
         public async Task RedisInitSecKillData()
         {
             // 获取 Redis 数据库连接
@@ -91,6 +103,7 @@ namespace DotNetCoreStudy.Authors
 
             for (int i = 0; i < 10; i++)
             {
+                // 几号房就有几个库存
                 string roomNum = i.ToString().PadLeft(4, '0');
                 await database.StringSetAsync($"room:{roomNum}", i.ToString());
             }
